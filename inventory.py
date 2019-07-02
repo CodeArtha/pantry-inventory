@@ -166,16 +166,49 @@ def initialize_database():
     return 1
 
 
+def add_item(itm, qty):
+    connection, cursor = connect(DATABASE_FILE)
+    #cursor.execute("""UPDATE items SET quantity = quantity + ? WHERE item = ?""", (itm, qty,))
+    cursor.execute("""INSERT INTO items(id, item, quantity) VALUES(NULL, ?, ?)""", (itm, qty,))
+
+    close(connection)
+
+    return 1
+    
+
 def main(args):
     """ Parsing command line arguments """
     if(args[1] == 'add'):
         # Adding items to inventory
-        print('Added x amount of something to your inventory')
-        
+        try:
+            qty = int(args[2])
+            item = args[3]
+            add_item(item, qty)
+        except IndexError:
+            print('Error: To add an item to your inventory you need to specify the amount and item name. How serendipitous...')
+            print(HELP_MESSAGE)
+        except ValueError:
+            print('Error: The quantity specified is not a number.')
+            print(HELP_MESSAGE)
+        else:
+            print('Successfully added {} {} to your inventory'.format(qty, args[3]))
+
+                 
     elif(args[1] == 'remove'):
         # Remove items from inventory
-        print('Removed / consumed x amount of something')
+        try:
+            qty = int(args[2])
+            item = args[3]
+        except IndexError:
+            print('Error: To remove an item from your inventory you need to specify the amount and item name. How serendipitous...')
+            print(HELP_MESSAGE)
+        except ValueError:
+            print('Error: The quantity specified is not a number.')
+            print(HELP_MESSAGE)
+        else:
+            print('Successfully removed {} {} to your inventory'.format(qty, args[3]))
 
+            
     elif(args[1] == 'show' or args[1] == 'list'):
         # List content (items with qty > 0)
         print('Inventory content:')
