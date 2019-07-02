@@ -6,10 +6,12 @@
 
 # ~ Author: CodeArtha
 # ~ Code: https://github.com/codeartha/pantry-inventory
-# ~ Tip the author: see github
+# ~ Tip the author: - BTC: 1G2J5DwfGFfBJbreLJrymTA5NXHu4Pya6i
+# ~                 - ETH: 0xEbc563324d69448E2F039deDA838c3a8873B2d3B
 
 
 # TO-DO: switch over to argparse someday
+# Currently items quantities are handled in INT. One apple, one egg, one loaf of bread, one pack of sugar. Maybe someday change it to FLOATS? In any case the database stores them as REAL so decimals can be stored.
 
 
 import sys
@@ -18,7 +20,7 @@ import os
 
 
 HELP_MESSAGE = '''
-usage: inventory.py [-h] [add | remove | list] x item
+usage: inventory.py [-h] [add | remove | list] [amount] [itemname]
 
 description:
 Manages your player's food inventory.
@@ -29,10 +31,10 @@ author: CodeArtha
 code: https://github.com/CodeArtha/pantry-inventory
 
 positional arguments:
-    add                adds 'x' amount of 'item' to your inventory
-    remove            removes 'x' amount of 'item' of your inventory
-    list            show/list all your current inventory
-    initialize        (re)create the database that stores your inventory
+    add         adds 'x' amount of 'item' to your inventory
+    remove      removes 'x' amount of 'item' of your inventory
+    list        show/list all your current inventory
+    init        (re)create the database that stores your inventory
 
 optional arguments:
     -h, --help        shows this help message
@@ -166,14 +168,68 @@ def initialize_database():
     return 1
 
 
-def add_item(itm, qty):
+def add_item(itm, increase_by):
+    itm = itm.lower()
+    increase_by = int(increase_by)
+    
     connection, cursor = connect(DATABASE_FILE)
-    #cursor.execute("""UPDATE items SET quantity = quantity + ? WHERE item = ?""", (itm, qty,))
-    cursor.execute("""INSERT INTO items(id, item, quantity) VALUES(NULL, ?, ?)""", (itm, qty,))
+    
+    cursor.execute("""SELECT quantity FROM items WHERE item = ?""", (itm,))
+    print(cursor.fetchone())
+    
+    if(not bool(cursor.fetchone())):
+        # The item doesn't exist yet
+        try:
+            cursor.execute("""INSERT INTO items (item, quantity) VALUES(?, ?)""", (itm, increase_by,))
+            connection.commit()
+        except:
+            connection.rollback()
+            raise RuntimeError("Failed to create new item and update it's amount")
+        finally:
+            close(connection)
+            
+    else:
+        # Item already exist, update it's amount
+        current_amount = cursor.fetchone()[0]
+        
+        if(int(current_amount) <= 0): # Shouldn't ever happen, but Todd Howard, you know...
+            new_amount = increase_by
+        else:
+            new_amount = current_amount + increase_by
 
-    close(connection)
+        try:
+            cursor.execute("""UPDATE items SET quantity=? WHERE item=?""", (new_amount, itm,))
+            connection.commit()
+        except:
+            connection.rollback()
+            raise RuntimeError("Could not update value upon item addition")
+        finally:
+            close(connection)
 
-    return 1
+
+def remove_item(itm, decrease_by):
+    itm = itm.lower()
+    decrease_by = int(decrease_by)
+    
+    connection, cursor = connect(DATABASE_FILE)
+    
+    cursor.execute("""SELECT quantity FROM items WHERE item = ?""", (itm,))
+    current_amount = cursor.fetchone()[0]
+    
+    if(int(current_amount) >= decrease_by):
+        new_amount = current_amount - decrease_by
+    else:
+        new_amount = 0
+        print('Warning: tried to remove more {} than currently in possession. Caped amount at zero.'.format(itm))
+
+    try:
+        cursor.execute("""UPDATE items SET quantity=? WHERE item=?""", (new_amount, itm,))
+        connection.commit()
+    except:
+        connection.rollback()
+        raise RuntimeError("Could not update value upon item deletion")
+    finally:
+        close(connection)
     
 
 def main(args):
