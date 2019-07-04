@@ -175,9 +175,9 @@ def add_item(itm, increase_by):
     connection, cursor = connect(DATABASE_FILE)
     
     cursor.execute("""SELECT quantity FROM items WHERE item = ?""", (itm,))
-    print(cursor.fetchone())
+    result = cursor.fetchone() # remember fetchone is an iterable, calling it multiple times yield different rows in the result. if you want to refer to one row multiple times STORE IT!!
     
-    if(not bool(cursor.fetchone())):
+    if result is None:
         # The item doesn't exist yet
         try:
             cursor.execute("""INSERT INTO items (item, quantity) VALUES(?, ?)""", (itm, increase_by,))
@@ -190,8 +190,7 @@ def add_item(itm, increase_by):
             
     else:
         # Item already exist, update it's amount
-        current_amount = cursor.fetchone()[0]
-        
+        current_amount = result[0]
         if(int(current_amount) <= 0): # Shouldn't ever happen, but Todd Howard, you know...
             new_amount = increase_by
         else:
