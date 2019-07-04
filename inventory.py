@@ -213,13 +213,20 @@ def remove_item(itm, decrease_by):
     connection, cursor = connect(DATABASE_FILE)
     
     cursor.execute("""SELECT quantity FROM items WHERE item = ?""", (itm,))
-    current_amount = cursor.fetchone()[0]
+    result = cursor.fetchone()
+
+    if not result:
+        # result is None, meaning the item does not exist in inventory
+        print('Error trying to delete {}. Item does not exist in inventory'.format(itm))
+        return 0
+    else:
+        current_amount = result[0]
     
     if(int(current_amount) >= decrease_by):
         new_amount = current_amount - decrease_by
     else:
         new_amount = 0
-        print('Warning: tried to remove more {} than currently in possession. Caped amount at zero.'.format(itm))
+        print('Warning: trying to remove more {} than currently in possession. Caped amount at zero.'.format(itm))
 
     try:
         cursor.execute("""UPDATE items SET quantity=? WHERE item=?""", (new_amount, itm,))
@@ -254,6 +261,7 @@ def main(args):
         try:
             qty = int(args[2])
             item = args[3]
+            remove_item(item, qty)
         except IndexError:
             print('Error: To remove an item from your inventory you need to specify the amount and item name. How serendipitous...')
             print(HELP_MESSAGE)
