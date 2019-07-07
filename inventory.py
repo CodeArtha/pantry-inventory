@@ -236,7 +236,20 @@ def remove_item(itm, decrease_by):
         raise RuntimeError("Could not update value upon item deletion")
     finally:
         close(connection)
-    
+
+
+def show_inventory():
+    connection, cursor = connect(DATABASE_FILE)
+    cursor.execute("""SELECT item, quantity FROM items WHERE quantity > 0 ORDER BY item""")
+    data = cursor.fetchall()
+    close(connection)
+
+    print('Currently in your inventory')
+    for line in data:
+        print('{}: {}'.format(line[0], line[1]))
+
+    return 1
+
 
 def main(args):
     """ Parsing command line arguments """
@@ -273,10 +286,7 @@ def main(args):
 
             
     elif(args[1] == 'show' or args[1] == 'list'):
-        # List content (items with qty > 0)
-        print('Inventory content:')
-        print('this: 4')
-        print('that: 2')
+        show_inventory()
 
     elif(args[1] == 'init' or args[1] == 'initialize'):
         initialize_database()
