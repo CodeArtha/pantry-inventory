@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # ~ Manages your player's food inventory.
-# ~ Euh... I mean... Your kitchen's fridge and pantery.
+# ~ Euh... I mean... Your kitchen's fridge and pantry.
 # ~ Also ties in with your favorite recipes.
 
 # ~ Author: CodeArtha
@@ -11,7 +11,8 @@
 
 
 # TO-DO: switch over to argparse someday
-# Currently items quantities are handled in INT. One apple, one egg, one loaf of bread, one pack of sugar. Maybe someday change it to FLOATS? In any case the database stores them as REAL so decimals can be stored.
+# Currently items quantities are handled in INT. One apple, one egg, one loaf of bread, one pack of sugar.
+# Maybe someday change it to FLOATS? In any case the database stores them as REAL so decimals can be stored.
 
 
 import sys
@@ -42,6 +43,16 @@ optional arguments:
 
 
 DATABASE_FILE = 'kitchen.sqlite3'
+all_item_names = []
+
+
+def get_all_item_names():
+    global all_item_names
+    connection, cursor = connect(DATABASE_FILE)
+
+    cursor.execute("""SELECT item FROM items WHERE quantity > 0 ORDER BY item""")
+    all_item_names = cursor.fetchall()
+    close(connection)
 
 
 def clear_terminal():
@@ -71,7 +82,7 @@ def close(conn):
 
 
 def initialize_database():
-    if(os.path.isfile(DATABASE_FILE)):
+    if os.path.isfile(DATABASE_FILE):
         clear_terminal()
         print('Warning: The database file already exist. Going further will errase data.')
         print('Options:')
@@ -79,10 +90,10 @@ def initialize_database():
         print('2: Rebuild just the inventory database')
         print('3: Rebuild both inventory and recipes database')
         action = int(input('What do you want to do [1, 2, 3]? '))
-        if(action == 1):
+        if action == 1:
             print('Initialization cancelled...')
             return 1
-        elif(action == 2):
+        elif action == 2:
             connection, cursor = connect(DATABASE_FILE)
 
             cursor.execute("""
@@ -98,7 +109,7 @@ def initialize_database():
 
             close(connection)
             return 1
-        elif(action == 3):
+        elif action == 3:
             connection, cursor = connect(DATABASE_FILE)
 
             cursor.execute("""DROP TABLE IF EXISTS items""")
@@ -175,8 +186,11 @@ def add_item(itm, increase_by):
     connection, cursor = connect(DATABASE_FILE)
     
     cursor.execute("""SELECT quantity FROM items WHERE item = ?""", (itm,))
-    result = cursor.fetchone() # remember fetchone is an iterable, calling it multiple times yield different rows in the result. if you want to refer to one row multiple times STORE IT!!
-    
+
+    # remember fetchone is an iterable, calling it multiple times yield different rows
+    # in the result. if you want to refer to one row multiple times STORE IT!!
+    result = cursor.fetchone()
+
     if result is None:
         # The item doesn't exist yet
         try:
@@ -191,7 +205,7 @@ def add_item(itm, increase_by):
     else:
         # Item already exist, update it's amount
         current_amount = result[0]
-        if(int(current_amount) <= 0): # Shouldn't ever happen, but Todd Howard, you know...
+        if int(current_amount) <= 0: # Shouldn't ever happen, but Todd Howard, you know...
             new_amount = increase_by
         else:
             new_amount = current_amount + increase_by
@@ -222,7 +236,7 @@ def remove_item(itm, decrease_by):
     else:
         current_amount = result[0]
     
-    if(int(current_amount) >= decrease_by):
+    if int(current_amount) >= decrease_by:
         new_amount = current_amount - decrease_by
     else:
         new_amount = 0
@@ -253,7 +267,7 @@ def show_inventory():
 
 def main(args):
     """ Parsing command line arguments """
-    if(args[1] == 'add'):
+    if args[1] == 'add':
         # Adding items to inventory
         try:
             qty = int(args[2])
@@ -268,8 +282,7 @@ def main(args):
         else:
             print('Successfully added {} {} to your inventory'.format(qty, args[3]))
 
-                 
-    elif(args[1] == 'remove'):
+    elif args[1] == 'remove':
         # Remove items from inventory
         try:
             qty = int(args[2])
@@ -284,14 +297,13 @@ def main(args):
         else:
             print('Successfully removed {} {} to your inventory'.format(qty, args[3]))
 
-            
-    elif(args[1] == 'show' or args[1] == 'list'):
+    elif args[1] == 'show' or args[1] == 'list':
         show_inventory()
 
-    elif(args[1] == 'init' or args[1] == 'initialize'):
+    elif args[1] == 'init' or args[1] == 'initialize':
         initialize_database()
 
-    elif(args[1] == '-h' or args[1] == '--help'):
+    elif args[1] == '-h' or args[1] == '--help':
         print(HELP_MESSAGE)
     else:
         # Default
