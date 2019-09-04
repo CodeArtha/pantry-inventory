@@ -19,7 +19,6 @@ import sys
 import sqlite3
 import os
 
-
 HELP_MESSAGE = '''
 usage: inventory.py [-h] [add | remove | list] [amount] [itemname]
 
@@ -43,15 +42,15 @@ optional arguments:
 
 
 DATABASE_FILE = 'kitchen.sqlite3'
-all_item_names = []
+all_items_list = []
 
 
-def get_all_item_names():
-    global all_item_names
+def all_items_list_update():
+    global all_items_list
     connection, cursor = connect(DATABASE_FILE)
 
-    cursor.execute("""SELECT item FROM items WHERE quantity > 0 ORDER BY item""")
-    all_item_names = cursor.fetchall()
+    cursor.execute("""SELECT item, quantity FROM items WHERE quantity > 0 ORDER BY item""")
+    all_items_list = cursor.fetchall()
     close(connection)
 
 
@@ -253,17 +252,44 @@ def remove_item(itm, decrease_by):
 
 
 def show_inventory():
-    connection, cursor = connect(DATABASE_FILE)
-    cursor.execute("""SELECT item, quantity FROM items WHERE quantity > 0 ORDER BY item""")
-    data = cursor.fetchall()
-    close(connection)
+    all_items_list_update()
+    term_cols, term_rows = os.get_terminal_size(0)
+    global all_items_list
 
+    longest_line = 0
+    for item in all_items_list:
+        if (len(str(item[0])) + len(str(item[1]))) > longest_line:
+            longest_line = len(str(item[0])) + len(str(item[1]))
+
+    longest_line += 5
+    columns = int(term_cols / longest_line)
+    print(columns)
+    print(longest_line)
+    line = ''
+    c = 0
     print('Currently in your inventory')
-    for line in data:
-        print('{}: {}'.format(line[0], line[1]))
+    print('===========================')
 
+    for item in all_items_list:
+        itemstr = "| {} : {}".format(item[0], item[1])
+        spaces = longest_line - len(itemstr) + 1
+        for i in range(spaces):
+            itemstr += " "
+
+        c += 1
+
+        if c == columns:
+            line += itemstr
+            line = line + '|'
+            print(line)
+            c = 0
+            line = ''
+        else:
+            line += itemstr
+
+    line = line + '|'
+    print(line)
     return 1
-
 
 def main(args):
     """ Parsing command line arguments """
