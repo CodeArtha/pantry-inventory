@@ -170,9 +170,11 @@ def main(args):
     elif args[1] == 'craft':
         pass
     elif args[1] == 'init' or args[1] == 'initialize':
-        pass
+        initialize_database()
+
     elif args[1] == '-h' or args[1] == '--help':
         print(HELP_MESSAGE)
+
     else:
         # Default
         print(HELP_MESSAGE)
