@@ -20,7 +20,7 @@ import sqlite3
 import os
 
 HELP_MESSAGE = '''
-usage: inventory.py [-h] [add | remove | list] [amount] [itemname]
+usage: inventory.py [-h] [add | remove | show | list | init] [amount] [itemname]
 
 description:
 Manages your player's food inventory.
@@ -178,6 +178,19 @@ def initialize_database():
     return 1
 
 
+def get_terminal_size(fallback=(80, 24)):
+    """ Returns the terminal size even when pipeing to or from the script """
+    for i in range(0, 3):
+        try:
+            columns, rows = os.get_terminal_size(i)
+        except OSError:
+            continue
+        break
+    else:
+        columns, rows = fallback
+    return columns, rows
+
+
 def add_item(itm, increase_by):
     itm = itm.lower()
     increase_by = int(increase_by)
@@ -253,7 +266,7 @@ def remove_item(itm, decrease_by):
 
 def show_inventory():
     all_items_list_update()
-    term_cols, term_rows = os.get_terminal_size(0)
+    term_cols, term_rows = get_terminal_size()
     global all_items_list
 
     longest_line = 0
