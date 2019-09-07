@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+
+# ~ Manages your player's food inventory.
+# ~ Euh... I mean... Your kitchen's fridge and pantry.
+# ~ Also ties in with your favorite recipes.
+
+# ~ Author: CodeArtha
+# ~ Code: https://github.com/codeartha/pantry-inventory
+# ~ Tip the author: - BTC: 1G2J5DwfGFfBJbreLJrymTA5NXHu4Pya6i
+# ~                 - ETH: 0xEbc563324d69448E2F039deDA838c3a8873B2d3B
+
+
 import sys
 import os
 import sqlite3
@@ -13,13 +25,13 @@ author: CodeArtha
 code: https://github.com/CodeArtha/pantry-inventory
 
 positional arguments (available commands):
-    new                 interactive menu to create a new recipe
-    edit [name]         edit an existing recipe
-    remove [name]       removes a recipe from your cookbook
+    new [title]         interactive menu to create a new recipe
+    edit [title]        edit an existing recipe
+    remove [title]      removes a recipe from your cookbook
     rename [old] [new]  if you just want to change the title of a recipe
     listall             shows all the recipes stored in your cookbook
     listrandom          suggests 5 random recipes when lacking ideas
-    craft [qty] [name]  removes the items needed to craft that recipe 'qty' times from your inventory
+    craft [qty] [title] removes the items needed to craft that recipe 'qty' times from your inventory
     init                (re)create the database that stores your cookbook
 
 optional arguments:
@@ -104,7 +116,7 @@ def initialize_database():
                 CREATE TABLE IF NOT EXISTS recipes(
                 id INTEGER UNSIGNED PRIMARY KEY,
                 title TEXT UNIQUE NOT NULL,
-                type TEXT CHECK(type IN ('starter', 'dish', 'dessert', 'snack')) NOT NULL DEFAULT 'dish',
+                type TEXT CHECK(type IN ('starter', 'main', 'dessert', 'snack')) NOT NULL DEFAULT 'dish',
                 description TEXT,
                 instructions TEXT)
             """)
@@ -137,7 +149,7 @@ def initialize_database():
             CREATE TABLE IF NOT EXISTS recipes(
             id INTEGER UNSIGNED PRIMARY KEY,
             title TEXT UNIQUE NOT NULL,
-            type TEXT CHECK(type IN ('starter', 'dish', 'dessert', 'snack')) NOT NULL DEFAULT 'dish',
+            type TEXT CHECK(type IN ('starter', 'main', 'dessert', 'snack')) NOT NULL DEFAULT 'dish',
             description TEXT,
             instructions TEXT)
         """)
@@ -153,10 +165,99 @@ def initialize_database():
         close(connection)
     return 1
 
+
+def create_recipe(title=None):
+    print("Creating a new recipe")
+    print("=====================")
+
+    if title is None:
+        rcp_title = input("New recipe title: ")
+    else:
+        rcp_title = title
+
+    rcp_type = ''
+    while rcp_type not in {'starter', 'main', 'dessert', 'snack'}:
+        rcp_type = input("Type of course (starter, main, dessert, snack): ")
+
+    print("Ingredient list")
+    print("===============")
+    print("Normalize the amounts for a \'one person\'s\' dish")
+    print("Enter the ingredients with the same name as in your inventory")
+    print("Use the following format: [qty]<space>[ingredient_name_without_spaces]")
+    print("When done, type END on a new line")
+    print("===============")
+    rcp_ingredients = []
+    limit = 128
+    while True:
+        limit -= 1
+        usr_input = input()
+
+        if usr_input == "END":
+            break
+        elif limit <= 0:
+            print("You reached the limit in the number of ingredients of this recipe")
+            print("PS: What recipe requires more than 128 ingredients? Email me that ;)")
+            break
+        else:
+            fragments = usr_input.split()
+            #amount = float(fragments[0])
+            #ingr_name = ''.join(fragments[1:]).lower()
+            amount = fragments[0]
+            ingr_name = fragments[1]
+            tuple = (ingr_name, amount)
+            print(tuple)
+            rcp_ingredients.append(tuple)
+
+    print("=================")
+    print(rcp_ingredients)
+
+    rcp_description = ''
+    print("\nEnter a brief recipe description: (type 'END' on a new line when done)")
+    while True:
+        usr_input = input()
+        if usr_input == "END":
+            break
+        else:
+            rcp_description += usr_input + "\n"
+
+    rcp_instructions = ''
+    print("\nGive the instructions to prepare this dish: (type 'END' on a new line when done)")
+    while True:
+        usr_input = input()
+        if usr_input == "END":
+            break
+        else:
+            rcp_instructions += usr_input + "\n"
+
+    clear_terminal()
+    print("===================================")
+    print("Review your recipe before saving it")
+    print("===================================")
+    print("Title: " + rcp_title)
+    print("Type: " + rcp_type)
+    print("Description: \n" + rcp_description)
+    print("Ingredients: ")
+    for i in rcp_ingredients:
+        print("{}: {}".format(i[0], i[1]))
+
+    print()
+    print("Instructions: \n" + rcp_instructions)
+    agree = input("Save this recipe? (yes/no) ").lower()
+    if agree == "y" or agree == "yes":
+        print("Recipe Saved.")
+        #save_rcp(rcp_title, rcp_type, rcp_description, rcp_ingredients, rcp_instructions)
+    else:
+        create_recipe()
+
+
 def main(args):
     """ Parsing command line arguments """
     if args[1] == 'new':
-        pass
+        if len(args) == 3:
+            create_recipe(args[2])
+        else:
+            create_recipe()
+
     elif args[1] == 'edit':
         pass
     elif args[1] == 'remove':
@@ -178,6 +279,7 @@ def main(args):
     else:
         # Default
         print(HELP_MESSAGE)
+
 
 if __name__ == '__main__':
     main(sys.argv)
