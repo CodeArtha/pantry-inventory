@@ -149,7 +149,7 @@ def initialize_database():
             CREATE TABLE IF NOT EXISTS recipes(
             id INTEGER UNSIGNED PRIMARY KEY,
             title TEXT UNIQUE NOT NULL,
-            type TEXT CHECK(type IN ('starter', 'main', 'dessert', 'snack')) NOT NULL DEFAULT 'dish',
+            type TEXT CHECK(type IN ('starter', 'main', 'dessert', 'snack')) NOT NULL DEFAULT 'main',
             description TEXT,
             instructions TEXT)
         """)
@@ -163,6 +163,34 @@ def initialize_database():
         """)
 
         close(connection)
+    return 1
+
+
+def save_recipe(rcp_dict):
+    connection, cursor = connect(DATABASE_FILE)
+
+    cursor.execute(
+        """INSERT INTO recipes 
+        (title, type, description, instructions) 
+        VALUES(?,?,?,?)""", (
+            rcp_dict['title'],
+            rcp_dict['type'],
+            rcp_dict['description'],
+            rcp_dict['instructions'],
+        )
+    )
+
+    cursor.execute("""SELECT id FROM recipes WHERE title = ?""", (rcp_dict['title'],))
+    rcp_id = cursor.fetchone
+
+    ingredients = rcp_dict['ingredients']
+    for i in ingredients:
+        amount = i[0]
+        item = i[1]
+        cursor.execute("""""")
+        pass
+
+    close(connection)
     return 1
 
 
@@ -239,13 +267,18 @@ def create_recipe(title=None):
     print("Ingredients: ")
     for i in rcp_ingredients:
         print("{}: {}".format(i[0], i[1]))
-
     print()
     print("Instructions: \n" + rcp_instructions)
+
     agree = input("Save this recipe? (yes/no) ").lower()
     if agree == "y" or agree == "yes":
-        print("Recipe Saved.")
-        #save_rcp(rcp_title, rcp_type, rcp_description, rcp_ingredients, rcp_instructions)
+        save_recipe({"title": rcp_title,
+                     "type": rcp_type,
+                     "desc": rcp_description,
+                     "ingr": rcp_ingredients,
+                     "inst": rcp_instructions
+        })
+        print("Recipe saved.")
     else:
         create_recipe()
 
