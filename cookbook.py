@@ -283,6 +283,36 @@ def create_recipe(title=None):
         create_recipe()
 
 
+def save_recipe(rcp):
+    """
+
+    :type rcp: dict
+    """
+    connection, cursor = connect(DATABASE_FILE)
+
+    cursor.execute("""INSERT INTO
+        recipes(title, type, description, instructions)
+        VALUES(?,?,?,?)""",
+        rcp['title'], rcp['type'], rcp['desc'], rcp['inst'])
+    connection.commit()
+
+    cursor.execute("""SELECT id FROM recipes WHERE title=?""", rcp['title'])
+    rcp_id = cursor.fetchone()
+
+    for ingredient in rcp['ingr']:
+        ingr_name = ingredient[0]
+        ingr_qty = ingredient[1]
+
+        cursor.execute("""SELECT id FROM items WHERE item=?""", ingr_name)
+        item_id = cursor.fetchone()
+
+        cursor.execute("""INSERT INTO
+            ingredients(quantity, item_id, recipe_id)
+            VALUES(?, ?, ?)""",
+            ingr_qty, item_id, rcp_id)
+        connection.commit()
+
+
 def main(args):
     """ Parsing command line arguments """
     if args[1] == 'new':
